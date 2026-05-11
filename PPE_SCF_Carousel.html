@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PP&E in SCF · 카오스 격파 카드뉴스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,800;1,9..144,400;1,9..144,600&family=Pretendard:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #FAF6EE;
+    --paper-2: #F2EBDD;
+    --ink: #0F0F0F;
+    --ink-2: #2A2A2A;
+    --mute: #7A7268;
+    --rule: #DCD3C1;
+    --accent: #C44128;
+    --accent-soft: #FCE8DD;
+    --highlight: #FFE066;
+    --good: #2D6A4F;
+    --card-shadow: 0 30px 80px rgba(20,15,5,0.18), 0 4px 14px rgba(20,15,5,0.10);
+    --serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    --sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  html, body {
+    background: linear-gradient(180deg, #E9E0CE 0%, #D9CFB8 100%);
+    font-family: var(--sans);
+    color: var(--ink);
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ============ CAROUSEL CONTAINER ============ */
+  .stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .viewport {
+    width: min(92vw, 520px);
+    aspect-ratio: 4 / 5;
+    max-height: calc(100vh - 180px);
+    position: relative;
+    perspective: 1200px;
+  }
+
+  .track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+  }
+
+  /* CARD - now absolutely positioned, slides transform */
+  .card {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--paper);
+    border-radius: 28px;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    padding: 38px 34px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(100%) scale(0.96);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.45s ease,
+                visibility 0s linear 0.55s;
+    pointer-events: none;
+  }
+
+  .card.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0) scale(1);
+    pointer-events: auto;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.45s ease,
+                visibility 0s linear 0s;
+  }
+
+  .card.prev {
+    opacity: 0;
+    visibility: visible;
+    transform: translateX(-100%) scale(0.96);
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.45s ease;
+  }
+
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(60,40,10,0.06) 1px, transparent 0);
+    background-size: 4px 4px;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    opacity: 0.6;
+  }
+
+  /* ============ NAV ============ */
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: min(92vw, 520px);
+  }
+  .nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 18px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--paper);
+    transform: scale(1.05);
+  }
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .progress {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+    height: 3px;
+    align-items: center;
+  }
+  .progress-seg {
+    flex: 1;
+    height: 100%;
+    background: rgba(0,0,0,0.12);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-seg.done { background: var(--ink); }
+  .progress-seg.active {
+    background: rgba(0,0,0,0.12);
+  }
+  .progress-seg.active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--ink);
+    width: 100%;
+    transform-origin: left;
+    animation: none;
+  }
+
+  .counter {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-style: italic;
+    color: var(--ink);
+    font-weight: 500;
+    min-width: 50px;
+    text-align: center;
+  }
+  .counter .total { color: var(--mute); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--mute);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-align: center;
+  }
+  .hint kbd {
+    font-family: var(--mono);
+    background: rgba(0,0,0,0.06);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    margin: 0 2px;
+  }
+
+  /* ============ CARD CONTENT (same as before) ============ */
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--mute);
+    position: relative;
+    z-index: 2;
+  }
+  .card-header .badge { color: var(--accent); }
+  .card-header .num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 15px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+  }
+
+  .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 20px 0;
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+  }
+
+  .card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--mute);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
+    position: relative;
+    z-index: 2;
+  }
+  .card-footer .swipe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .card-footer .swipe::after {
+    content: "→";
+  }
+
+  .display {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(34px, 6.5vw, 50px);
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+  }
+  .display em { font-style: italic; font-weight: 400; }
+  .display .accent { color: var(--accent); font-style: italic; }
+
+  .h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(24px, 4vw, 30px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .h2 em { font-style: italic; color: var(--accent); }
+
+  .lede {
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    font-weight: 400;
+  }
+  .lede strong {
+    background: var(--highlight);
+    padding: 0 4px;
+    font-weight: 700;
+  }
+
+  .accent-bar {
+    width: 56px;
+    height: 4px;
+    background: var(--accent);
+    margin-bottom: 22px;
+  }
+
+  /* CARD 1 */
+  .cover .display { margin-bottom: 20px; }
+
+  /* CARD 2: THE PROBLEM (original question text) */
+  .problem .card-header .badge { color: var(--accent); }
+  .problem .h2 { margin-bottom: 14px; }
+  .problem .problem-text {
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink-2);
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .problem .problem-text .hl-blue {
+    background: #DBE7FF;
+    padding: 0 4px;
+    border-radius: 2px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .problem .problem-text .hl-purple {
+    background: #EBDDFB;
+    padding: 0 4px;
+    border-radius: 2px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .problem .problem-text strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .problem .problem-text .ask {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .problem .source-tag {
+    font-family: var(--sans);
+    font-size: 10px;
+    color: var(--mute);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  /* CARD 2: CHAOS */
+  .chaos { background: #1A1410; }
+  .chaos::before {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0);
+  }
+  .chaos .card-header { color: rgba(255,255,255,0.5); }
+  .chaos .card-header .badge { color: var(--highlight); }
+  .chaos .card-header .num { color: rgba(255,255,255,0.85); }
+  .chaos .card-footer { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
+  .chaos .card-footer .swipe { color: var(--highlight); }
+  .chaos .h2 { color: var(--paper); margin-bottom: 12px; }
+  .chaos .h2 em { color: var(--highlight); }
+
+  .chaos-words {
+    position: relative;
+    flex: 1;
+    min-height: 240px;
+  }
+  .chaos-word {
+    position: absolute;
+    font-family: var(--serif);
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .chaos-word.hl { color: var(--highlight); font-style: italic; }
+  .chaos-word.dim { color: rgba(255,255,255,0.35); }
+  .chaos-word.q { color: var(--accent); font-weight: 700; }
+
+  .chaos-caption {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .chaos-caption strong { color: var(--highlight); font-weight: 700; }
+
+  /* CARD 3: REFRAME */
+  .reframe .h2 { margin-bottom: 12px; }
+  .reframe .reframe-q {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--mute);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .filter-list { display: flex; flex-direction: column; gap: 10px; }
+  .filter-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 11px 14px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+  }
+  .filter-item .icon {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.2;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .filter-item .text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink-2);
+  }
+  .filter-item .text strong { color: var(--ink); }
+  .filter-item .text code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--paper-2);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .reframe .punch {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 14px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  /* CARD 4: TIMELINE */
+  .timeline .h2 { margin-bottom: 14px; }
+  .timeline .lede { font-size: 13px; margin-bottom: 4px; }
+  .tl-bar {
+    position: relative;
+    height: 60px;
+    margin: 16px 0;
+  }
+  .tl-line {
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 2px;
+    background: var(--ink);
+    transform: translateY(-50%);
+  }
+  .tl-tick {
+    position: absolute;
+    top: 50%;
+    width: 14px; height: 14px;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+  }
+  .tl-tick.target {
+    background: var(--accent);
+    border-color: var(--accent);
+    width: 18px; height: 18px;
+  }
+  .tl-tick.dim { background: var(--mute); border-color: var(--mute); opacity: 0.5; }
+  .tl-label {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--ink-2);
+    letter-spacing: 0.04em;
+    width: 70px;
+  }
+  .tl-label.top { top: -2px; }
+  .tl-label.bot { bottom: -2px; }
+  .tl-label.target { color: var(--accent); }
+  .tl-label.dim { color: var(--mute); opacity: 0.6; }
+  .tl-tag {
+    font-size: 8px;
+    font-weight: 500;
+    color: var(--mute);
+    margin-top: 2px;
+    display: block;
+  }
+  .focus-box {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 13px 15px;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .focus-box strong {
+    color: var(--highlight);
+    font-weight: 700;
+  }
+  .focus-box .label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--highlight);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* CARD 5: 3-PASS */
+  .pass .h2 { margin-bottom: 16px; }
+  .pass-list { display: flex; flex-direction: column; gap: 10px; }
+  .pass-item {
+    display: grid;
+    grid-template-columns: 50px 1fr;
+    gap: 14px;
+    padding: 12px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+  }
+  .pass-item .badge {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: center;
+    padding: 4px 0;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .pass-item .badge .big {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    font-style: italic;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .pass-item .body { padding-left: 2px; }
+  .pass-item .ttl {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 3px;
+    color: var(--ink);
+  }
+  .pass-item .desc {
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .pass-item .desc strong { color: var(--accent); font-weight: 700; }
+
+  /* CARD 6: T-ACCOUNT */
+  .tacc .h2 { margin-bottom: 14px; }
+  .tacc .acct-name {
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--mute);
+    font-size: 12px;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+  .tacc-box {
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    padding: 12px 0;
+    position: relative;
+  }
+  .tacc-box::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--ink);
+    transform: translateX(-50%);
+  }
+  .tacc-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    color: var(--mute);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .tacc-headers .left { padding-right: 14px; }
+  .tacc-headers .right { padding-left: 14px; text-align: right; }
+  .tacc-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: baseline;
+    padding: 4px 4px;
+    font-family: var(--serif);
+  }
+  .tacc-row .left, .tacc-row .right {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .tacc-row .left { padding-right: 16px; }
+  .tacc-row .right { padding-left: 16px; }
+  .tacc-row .lbl { font-size: 12px; color: var(--ink-2); }
+  .tacc-row .val { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .tacc-row.anchor .lbl, .tacc-row.anchor .val { font-weight: 700; }
+  .tacc-row.plug .lbl { color: var(--accent); font-style: italic; font-weight: 600; }
+  .tacc-row.plug .val { color: var(--accent); font-weight: 700; font-size: 17px; }
+  .tacc-eq {
+    margin-top: 10px;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--mute);
+    font-size: 11px;
+  }
+  .tacc-notes {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .tacc-notes .note-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--mute);
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+  .tacc-notes .note {
+    font-family: var(--serif);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .tacc-notes .note .tag {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: right;
+    letter-spacing: 0;
+    padding-right: 12px;
+    border-right: 1px solid var(--rule);
+    line-height: 1.4;
+  }
+  .tacc-notes .note .body {
+    font-family: var(--serif);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-2);
+  }
+  .tacc-notes .note .num {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .tacc-notes .note .op {
+    color: var(--mute);
+    margin: 0 2px;
+  }
+  .tacc-notes .note .eq {
+    color: var(--mute);
+    margin: 0 4px;
+  }
+  .tacc-notes .note .aside {
+    color: var(--mute);
+    font-style: italic;
+    font-size: 11px;
+  }
+  .tacc-notes .note strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* CARD 7: ANSWER */
+  .formula { text-align: center; }
+  .formula .label-top {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .formula .eq-display {
+    font-family: var(--serif);
+    font-size: clamp(22px, 4vw, 30px);
+    line-height: 1.4;
+    color: var(--ink);
+    margin-bottom: 10px;
+    font-weight: 400;
+  }
+  .formula .eq-display .op { color: var(--mute); margin: 0 4px; }
+  .formula .eq-display .var { font-style: italic; color: var(--accent); font-weight: 600; }
+  .formula .arrow {
+    color: var(--accent);
+    font-size: 20px;
+    margin: 4px 0;
+  }
+  .formula .answer {
+    font-family: var(--serif);
+    font-size: clamp(44px, 8vw, 62px);
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+    margin: 6px 0 14px;
+    letter-spacing: -0.02em;
+  }
+  .formula .answer .unit { font-size: 0.5em; color: var(--mute); margin-right: 8px; font-weight: 400; font-style: italic; }
+  .formula .caption {
+    font-size: 12px;
+    color: var(--mute);
+    line-height: 1.5;
+    max-width: 85%;
+    margin: 0 auto;
+  }
+  .formula .caption strong { color: var(--ink); font-weight: 700; }
+
+  /* CARD 9: OUTRO */
+  .outro { background: var(--ink); color: var(--paper); }
+  .outro::before { mix-blend-mode: screen; opacity: 0.15; }
+  .outro .card-header { color: rgba(255,255,255,0.5); }
+  .outro .card-header .badge { color: var(--highlight); }
+  .outro .card-header .num { color: var(--paper); }
+  .outro .card-footer { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.15); }
+  .outro .card-footer .swipe { color: var(--highlight); }
+  .outro .display { color: var(--paper); }
+  .outro .display .accent { color: var(--highlight); }
+  .outro .lede { color: rgba(255,255,255,0.85); }
+  .outro .lede strong { background: var(--highlight); color: var(--ink); }
+  .outro .signature {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 18px;
+  }
+  .outro .accent-bar { background: var(--highlight); }
+
+  /* chaos word floating */
+  @keyframes float-1 {
+    0%, 100% { transform: translate(-2px, -3px) rotate(-2deg); }
+    50% { transform: translate(3px, 2px) rotate(1deg); }
+  }
+  @keyframes float-2 {
+    0%, 100% { transform: translate(2px, 3px) rotate(2deg); }
+    50% { transform: translate(-2px, -2px) rotate(-1deg); }
+  }
+  @keyframes float-3 {
+    0%, 100% { transform: translate(-3px, 2px) rotate(1deg); }
+    50% { transform: translate(2px, -3px) rotate(-2deg); }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="viewport" id="viewport">
+    <div class="track" id="track">
+
+      <!-- CARD 1 -->
+      <article class="card cover active" data-idx="0">
+        <header class="card-header">
+          <span class="badge">PP&E · SCF</span>
+          <span class="num">01 / 10</span>
+        </header>
+        <div class="card-body">
+          <div class="accent-bar"></div>
+          <h1 class="display">읽다가<br>머리<br><span class="accent">하얘지는</span><br>그 문제.</h1>
+          <p class="lede" style="margin-top: 16px;">Y1, Y2, Y3, finance lease, sold equipment... <strong>다짜고짜 depreciation 찾으래</strong>. 이거 격파법 ㄱㄱ.</p>
+        </div>
+        <footer class="card-footer">
+          <span>CHAOS → CLARITY</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 2: THE PROBLEM -->
+      <article class="card problem" data-idx="1">
+        <header class="card-header">
+          <span class="badge">문제 원문</span>
+          <span class="num">02 / 10</span>
+        </header>
+        <div class="card-body">
+          <p class="source-tag">CPA FAR · Cash Flow · Q16</p>
+          <h2 class="h2">자, <em>이거</em> 풀어볼까.</h2>
+          <p class="problem-text">
+            On December 31, Year 1, Exeter Corporation had PP&amp;E of <span class="hl-blue">$1,450,000</span> and accumulated depreciation of <span class="hl-blue">$500,000</span>. During Year 2: acquired an asset for <strong>$250,000</strong> via <strong>finance lease</strong>; sold equipment (historical cost <strong>$200,000</strong>) for <strong>$20,000</strong>, resulting in a <span class="hl-purple">gain of $10,000</span>; net book value of all equipment at December 31, Year 2 was <strong>$850,000</strong>. <span class="ask">What was the amount of depreciation expense</span> used in Exeter's SCF (indirect method) to reconcile net income to cash flows from operations?
+          </p>
+        </div>
+        <footer class="card-footer">
+          <span>한 번 읽고 → 다음 카드로</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 3 -->
+      <article class="card chaos" data-idx="2">
+        <header class="card-header">
+          <span class="badge">문제 처음 봤을 때</span>
+          <span class="num">03 / 10</span>
+        </header>
+        <div class="card-body" style="padding: 12px 0;">
+          <h2 class="h2">이런 느낌<br><em>아님?</em></h2>
+          <div class="chaos-words">
+            <span class="chaos-word dim" style="top: 5%;   left: 8%;  font-size: 13px; transform: rotate(-4deg); animation: float-1 4s ease-in-out infinite;">December 31</span>
+            <span class="chaos-word"     style="top: 14%;  right: 4%; font-size: 20px; transform: rotate(3deg);  animation: float-2 5s ease-in-out infinite;">Year 1</span>
+            <span class="chaos-word hl"  style="top: 24%;  left: 6%;  font-size: 17px; animation: float-3 4.5s ease-in-out infinite;">Year 2</span>
+            <span class="chaos-word"     style="top: 36%;  right: 10%; font-size: 16px; transform: rotate(-3deg); animation: float-1 5.5s ease-in-out infinite;">finance lease</span>
+            <span class="chaos-word dim" style="top: 47%;  left: 4%;  font-size: 12px; animation: float-2 4s ease-in-out infinite;">historical cost</span>
+            <span class="chaos-word"     style="top: 56%;  right: 8%; font-size: 18px; transform: rotate(2deg);  animation: float-3 5s ease-in-out infinite;">sold equipment</span>
+            <span class="chaos-word dim" style="top: 67%;  left: 10%; font-size: 13px; transform: rotate(-2deg); animation: float-1 4.5s ease-in-out infinite;">accumulated dep.</span>
+            <span class="chaos-word hl"  style="top: 76%;  right: 6%; font-size: 17px; animation: float-2 5.5s ease-in-out infinite;">gain $10K</span>
+            <span class="chaos-word q"   style="bottom: 4%; left: 50%; transform: translateX(-50%) rotate(-1deg); font-size: 26px; animation: float-3 4s ease-in-out infinite;">depreciation??</span>
+          </div>
+          <p class="chaos-caption">"<strong>이거 어디서부터 풀어야 함?</strong>"<br>← 다 이런다. 너만 그런 거 아님 ㅋㅋ</p>
+        </div>
+        <footer class="card-footer">
+          <span>이제 격파법 알려줌</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 4 -->
+      <article class="card reframe" data-idx="3">
+        <header class="card-header">
+          <span class="badge">1단계 — 노이즈 필터</span>
+          <span class="num">04 / 10</span>
+        </header>
+        <div class="card-body">
+          <h2 class="h2">다 무시하고<br><em>이것만</em> 뽑아.</h2>
+          <p class="reframe-q">감가상각 묻는 문제 = Net BV 변화만 추적. 이 4개만 뽑으면 끝:</p>
+          <div class="filter-list">
+            <div class="filter-item">
+              <span class="icon">①</span>
+              <p class="text"><strong>시작 BV</strong> — 얼마부터 시작? <code>Cost − AD</code></p>
+            </div>
+            <div class="filter-item">
+              <span class="icon">②</span>
+              <p class="text"><strong>끝 BV</strong> — 얼마로 끝남? (보통 직접 줌)</p>
+            </div>
+            <div class="filter-item">
+              <span class="icon">③</span>
+              <p class="text"><strong>들어온 거</strong> — 산 거, lease로 받은 거 (cash든 아니든)</p>
+            </div>
+            <div class="filter-item">
+              <span class="icon">④</span>
+              <p class="text"><strong>판 거 BV</strong> — <code>매각가 − gain</code></p>
+            </div>
+          </div>
+          <p class="punch">나머지 단어는 다 함정. 진짜로.</p>
+        </div>
+        <footer class="card-footer">
+          <span>4개만 추출 → 끝</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 5 -->
+      <article class="card timeline" data-idx="4">
+        <header class="card-header">
+          <span class="badge">2단계 — 연도 함정 격파</span>
+          <span class="num">05 / 10</span>
+        </header>
+        <div class="card-body">
+          <h2 class="h2">Y1, Y2, Y3<br><em>전부 안 봐도 됨.</em></h2>
+          <p class="lede">출제자가 일부러 연도 잔뜩 깔아놓음. 진짜 봐야 할 건 <strong>딱 한 구간</strong>:</p>
+          <div class="tl-bar">
+            <div class="tl-line"></div>
+            <span class="tl-label top dim" style="left: 16%;">Y1 시작<span class="tl-tag">노이즈</span></span>
+            <span class="tl-tick dim" style="left: 16%;"></span>
+            <span class="tl-tick target" style="left: 42%;"></span>
+            <span class="tl-label bot target" style="left: 42%;">Y2 시작<span class="tl-tag">= 시작 BV</span></span>
+            <span class="tl-tick target" style="left: 70%;"></span>
+            <span class="tl-label top target" style="left: 70%;">Y2 끝<span class="tl-tag">= 끝 BV</span></span>
+            <span class="tl-tick dim" style="left: 92%;"></span>
+            <span class="tl-label bot dim" style="left: 92%;">Y3<span class="tl-tag">노이즈</span></span>
+          </div>
+          <div class="focus-box">
+            <span class="label">진짜 포커스</span>
+            "<strong>Year 2 SCF</strong>"를 묻는다 = <strong>Y2 한 구간</strong>만 보면 됨. Y1은 시작잔액 만들 때만, Y3는 무시.
+          </div>
+        </div>
+        <footer class="card-footer">
+          <span>물어보는 연도 = 한 구간</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 6 -->
+      <article class="card pass" data-idx="5">
+        <header class="card-header">
+          <span class="badge">3단계 — 3패스 독해</span>
+          <span class="num">06 / 10</span>
+        </header>
+        <div class="card-body">
+          <h2 class="h2">문제 <em>3번</em> 읽어.<br>그러면 안 헷갈림.</h2>
+          <div class="pass-list">
+            <div class="pass-item">
+              <div class="badge"><span class="big">1차</span>구조</div>
+              <div class="body">
+                <p class="ttl">뭐 묻는지 확인</p>
+                <p class="desc"><strong>마지막 문장부터</strong> 읽어. "What was the depreciation?" → OK, Net BV T 그릴 준비.</p>
+              </div>
+            </div>
+            <div class="pass-item">
+              <div class="badge"><span class="big">2차</span>추출</div>
+              <div class="body">
+                <p class="ttl">숫자 4개만 뽑기</p>
+                <p class="desc">시작/끝 BV, 산 거, 판 거 BV. <strong>나머지 다 무시.</strong></p>
+              </div>
+            </div>
+            <div class="pass-item">
+              <div class="badge"><span class="big">3차</span>검산</div>
+              <div class="body">
+                <p class="ttl">함정 체크</p>
+                <p class="desc">"finance lease" → BV에 더했나? "gain $Y" → BV로 변환했나? <strong>이 두 개가 1순위 함정.</strong></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="card-footer">
+          <span>읽기 전략 = 풀이 절반</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 7 -->
+      <article class="card tacc" data-idx="6">
+        <header class="card-header">
+          <span class="badge">4단계 — T 한 개</span>
+          <span class="num">07 / 10</span>
+        </header>
+        <div class="card-body">
+          <h2 class="h2" style="font-size: clamp(22px, 3.6vw, 26px); margin-bottom: 10px;">뽑은 4개<br><em>그냥 꽂아.</em></h2>
+          <p class="acct-name">Net PP&E · Book Value</p>
+          <div class="tacc-box">
+            <div class="tacc-headers">
+              <span class="left">DEBIT · 들어옴</span>
+              <span class="right">CREDIT · 나감</span>
+            </div>
+            <div class="tacc-row anchor">
+              <div class="left"><span class="lbl">시작 BV</span><span class="val">950,000</span></div>
+              <div class="right"></div>
+            </div>
+            <div class="tacc-row">
+              <div class="left"><span class="lbl">+ 취득 (lease)</span><span class="val">250,000</span></div>
+              <div class="right"><span class="lbl">판 자산 BV</span><span class="val">10,000</span></div>
+            </div>
+            <div class="tacc-row plug">
+              <div class="left"></div>
+              <div class="right"><span class="lbl">감가상각 ← plug</span><span class="val">?</span></div>
+            </div>
+            <div class="tacc-row anchor">
+              <div class="left"><span class="lbl">끝 BV</span><span class="val">850,000</span></div>
+              <div class="right"></div>
+            </div>
+          </div>
+          <p class="tacc-eq">시작 + 산 거 − 판 거 BV − 감가상각 = 끝</p>
+          <div class="tacc-notes">
+            <div class="note-title">숫자 어디서 왔냐면 —</div>
+            <div class="note">
+              <span class="tag">시작 BV</span>
+              <span class="body"><span class="num">1,450,000</span> <span class="op">−</span> <span class="num">500,000</span> <span class="eq">=</span> <span class="num">950,000</span><br><span class="aside">Y1말 Cost − AD</span></span>
+            </div>
+            <div class="note">
+              <span class="tag">판 BV</span>
+              <span class="body"><span class="num">20,000</span> <span class="op">−</span> <span class="num">10,000</span> <span class="eq">=</span> <span class="num">10,000</span><br><span class="aside">매각가 − gain · historical cost 200K는 함정</span></span>
+            </div>
+            <div class="note">
+              <span class="tag">취득</span>
+              <span class="body">lease로 받은 <span class="num">250,000</span><br><span class="aside">비현금이어도 BV엔 포함</span></span>
+            </div>
+            <div class="note">
+              <span class="tag">끝 BV</span>
+              <span class="body">문제에서 직접 → <span class="num">850,000</span></span>
+            </div>
+          </div>
+        </div>
+        <footer class="card-footer">
+          <span>이게 다임. 진짜로.</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 8 -->
+      <article class="card formula" data-idx="7">
+        <header class="card-header">
+          <span class="badge">정답</span>
+          <span class="num">08 / 10</span>
+        </header>
+        <div class="card-body">
+          <div class="label-top">감가상각 = ?</div>
+          <p class="eq-display">
+            950 <span class="op">+</span> 250 <span class="op">−</span> 10 <span class="op">−</span> <span class="var">X</span><br>
+            <span class="op">=</span> 850
+          </p>
+          <div class="arrow">↓</div>
+          <p class="answer"><span class="unit">$</span>340,000</p>
+          <p class="caption">시작 950 → 끝 850, 차이 100K 감소.<br>거기에 신규 250 더하고 매각 BV 10 빼면<br>남는 갭 <strong>340</strong>이 정답. 30초 컷.</p>
+        </div>
+        <footer class="card-footer">
+          <span>끝!</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 9 -->
+      <article class="card pass" data-idx="8">
+        <header class="card-header">
+          <span class="badge">자주 틀리는 함정 TOP 3</span>
+          <span class="num">09 / 10</span>
+        </header>
+        <div class="card-body">
+          <h2 class="h2">이 3개만 안 틀리면<br><em>합격각.</em></h2>
+          <div class="pass-list">
+            <div class="pass-item">
+              <div class="badge"><span class="big">1</span>덫</div>
+              <div class="body">
+                <p class="ttl">매각가 = BV 착각</p>
+                <p class="desc">받은 cash($20K) ≠ BV($10K). <strong>BV = 매각가 − gain.</strong></p>
+              </div>
+            </div>
+            <div class="pass-item">
+              <div class="badge"><span class="big">2</span>덫</div>
+              <div class="body">
+                <p class="ttl">Lease 비현금이라 패스</p>
+                <p class="desc">"Cash 안 나갔으니 빼야지~" ❌. <strong>BV 추적이지 cash 추적 아님.</strong></p>
+              </div>
+            </div>
+            <div class="pass-item">
+              <div class="badge"><span class="big">3</span>덫</div>
+              <div class="body">
+                <p class="ttl">엉뚱한 연도 잔액</p>
+                <p class="desc">"Y2 SCF" 묻는 문제에 <strong>Y1말 = 시작</strong>, <strong>Y2말 = 끝</strong>. Y3는 함정.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <footer class="card-footer">
+          <span>이거 외우면 무적</span>
+          <span class="swipe">SWIPE</span>
+        </footer>
+      </article>
+
+      <!-- CARD 10 -->
+      <article class="card outro" data-idx="9">
+        <header class="card-header">
+          <span class="badge">마무리</span>
+          <span class="num">10 / 10</span>
+        </header>
+        <div class="card-body">
+          <div class="accent-bar"></div>
+          <h1 class="display">
+            카오스 →<br>
+            4개 추출 →<br>
+            <span class="accent">T 한 방.</span>
+          </h1>
+          <p class="lede" style="margin-top: 20px;">단어 잔뜩 보여도 쫄지 마. 진짜 필요한 건 <strong>딱 4개 숫자</strong>.</p>
+          <p class="signature">— 다음 PP&E 문제 가져와 🚀</p>
+        </div>
+        <footer class="card-footer">
+          <span>METHOD NOTE No. 01 · END</span>
+          <span style="color: var(--highlight); font-weight: 700;">SAVE ★</span>
+        </footer>
+      </article>
+
+    </div>
+  </div>
+
+  <!-- NAV CONTROLS -->
+  <div class="nav-controls">
+    <button class="nav-btn" id="prevBtn" aria-label="이전">←</button>
+    <div class="progress" id="progress"></div>
+    <span class="counter"><span id="curNum">1</span><span class="total"> / 10</span></span>
+    <button class="nav-btn" id="nextBtn" aria-label="다음">→</button>
+  </div>
+
+  <div class="hint">
+    <kbd>←</kbd> <kbd>→</kbd> 키 · 스와이프 · 클릭
+  </div>
+</div>
+
+<script>
+  const cards = document.querySelectorAll('.card');
+  const total = cards.length;
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const progress = document.getElementById('progress');
+  const curNum = document.getElementById('curNum');
+  let current = 0;
+
+  // Build progress segments
+  for (let i = 0; i < total; i++) {
+    const seg = document.createElement('div');
+    seg.className = 'progress-seg';
+    progress.appendChild(seg);
+  }
+  const segs = document.querySelectorAll('.progress-seg');
+
+  function render() {
+    cards.forEach((c, i) => {
+      c.classList.remove('active', 'prev');
+      if (i === current) c.classList.add('active');
+      else if (i < current) c.classList.add('prev');
+    });
+    segs.forEach((s, i) => {
+      s.classList.remove('done', 'active');
+      if (i < current) s.classList.add('done');
+      else if (i === current) s.classList.add('active', 'done');
+    });
+    curNum.textContent = current + 1;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === total - 1;
+  }
+
+  function go(dir) {
+    const next = current + dir;
+    if (next < 0 || next >= total) return;
+    current = next;
+    render();
+  }
+
+  prevBtn.addEventListener('click', () => go(-1));
+  nextBtn.addEventListener('click', () => go(1));
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') go(-1);
+    if (e.key === 'ArrowRight') go(1);
+  });
+
+  // Click on card to advance (except on text selection)
+  cards.forEach((c) => {
+    c.addEventListener('click', (e) => {
+      if (!c.classList.contains('active')) return;
+      // ignore if user is selecting text
+      if (window.getSelection().toString().length > 0) return;
+      go(1);
+    });
+  });
+
+  // Touch swipe
+  const viewport = document.getElementById('viewport');
+  let touchStartX = 0;
+  let touchStartY = 0;
+  viewport.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  viewport.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    // require horizontal swipe (more horizontal than vertical, min 40px)
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      go(dx < 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
+  // Mouse drag
+  let mouseDownX = null;
+  viewport.addEventListener('mousedown', (e) => { mouseDownX = e.clientX; });
+  viewport.addEventListener('mouseup', (e) => {
+    if (mouseDownX === null) return;
+    const dx = e.clientX - mouseDownX;
+    if (Math.abs(dx) > 60) {
+      go(dx < 0 ? 1 : -1);
+    }
+    mouseDownX = null;
+  });
+
+  render();
+</script>
+
+</body>
+</html>
