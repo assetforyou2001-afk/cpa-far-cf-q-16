@@ -52,9 +52,12 @@
   }
 
   .viewport {
-    width: min(92vw, 520px);
+    /* Card is 4:5 portrait. Fit within available height first, then constrain width.
+       This prevents the card from overflowing on landscape / wide screens. */
+    height: min(calc(100vh - 180px), calc(92vw * 5 / 4));
     aspect-ratio: 4 / 5;
-    max-height: calc(100vh - 180px);
+    max-width: 92vw;
+    width: auto;
     position: relative;
     perspective: 1200px;
   }
@@ -123,7 +126,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    width: min(92vw, 520px);
+    /* Match the same width logic as .viewport so the nav lines up under the card */
+    width: min(92vw, calc((100vh - 180px) * 4 / 5));
   }
   .nav-btn {
     width: 44px;
